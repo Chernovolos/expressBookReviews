@@ -21,61 +21,104 @@ public_users.post("/register", (req,res) => {
 });
 
 // Get the book list available in the shop
-public_users.get('/',function (req, res) {
-  //Write your code here
-  // res.send(JSON.stringify( books, null, 4));
-  res.json(books);
-  // return res.status(300).json({message: "Yet to be implemented"});
+ async function getBookList() {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(books);
+    }, 4000);
+  });
+}
+
+public_users.get('/', async (req, res, next) => {
+  try {
+    const data = await getBookList();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  };
 });
 
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn',function (req, res) {
-  //Write your code here
-  let isbn = req.params.isbn;
-  let book = books[isbn];
+async function getBookDetails(isbn) {
+  return new Promise((resolve, reject) => {
+    let book = books[isbn];
 
-  if(book) {
-    res.send(book);
-  } else {
-    res.status(404).json({message: "Book is ot found"});
+    if(book) {
+      setTimeout(() => {
+        resolve(book);
+      }, 4000);
+    } else {
+      reject(new Error("Book not found"));
+    }
+  })
+}
+
+
+public_users.get('/isbn/:isbn', async (req, res, next) => {
+  let isbn = req.params.isbn;
+
+  try {
+    const book = await getBookDetails(isbn);
+    res.json(book);
+  } catch(err) {
+    res.status(404).json({ message: err.message });
   }
-  // return res.status(300).json({message: "Yet to be implemented"});
  });
   
 // Get book details based on author
-public_users.get('/author/:author', function (req, res) {
-  //Write your code here
-  let author = req.params.author;
-  console.log(author);
-
-  let keys = Object.keys(books);
-  const result = keys
+async function getBookDetailsBasedOnAuthor(author) {
+  return new Promise((resolve, reject) => {
+    let keys = Object.keys(books);
+    const result = keys
     .filter((key) => books[key].author.toLowerCase() === author.toLowerCase())
     .map((key) => books[key]);
 
-  console.log("result: ",result);
+    if(result.length > 0) {
+      setTimeout(() => {
+        resolve(result);
+      }, 4000);
+    } else {
+      reject(new Error("Book not found"));
+    }
+  })
+}
 
-  if(result.length > 0) {
-    res.send(result);
-  } else {
-    return res.status(404).json({message: "Author not found"});
+public_users.get('/author/:author', async (req, res) => {
+  let author = req.params.author;
+
+  try {
+    const book = await getBookDetailsBasedOnAuthor(author);
+    res.json(book);
+  } catch(err) {
+    res.status(404).json({ message: err.message });
   }
 });
 
 // Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-  //Write your code here
+async function getBooksDetailsBasedOnTitle(title) {
+  return new Promise((resolve, reject) => {
+    let result = null;
+    let values = Object.values(books);
+    result = values.filter((book) => book.title.toLowerCase().includes(title.toLowerCase()));
+
+    if(result.length > 0) {
+      setTimeout(() => {
+        resolve(result);
+      }, 4000);
+    } else {
+      reject(new Error("Book not found"));
+    }
+  })
+}
+
+public_users.get('/title/:title', async (req, res) => {
   let title = req.params.title;
-  let result = null;
 
-  let values = Object.values(books);
-
-  result = values.filter((book) => book.title.toLowerCase().includes(title.toLowerCase()));
-  
-  if(result.length > 0) {
-    res.send(result);
-  } else {
-    return res.status(404).json({message: "Title is ot found"});
+  try{
+    const books = await getBooksDetailsBasedOnTitle(title);
+    res.json(books);
+  } catch(err){
+    reject(new Error("Book not found"));
   }
 });
 
